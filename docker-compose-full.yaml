@@ -38,9 +38,7 @@ services:
       CAMUNDA_IDENTITY_AUDIENCE: orchestration-api
       # Resource limits
       JAVA_TOOL_OPTIONS: "-Xms512m -Xmx512m"
-    env_file:
-      - path: .env
-        required: true
+    env_file: .env
     restart: on-failure
     healthcheck:
       test: ["CMD-SHELL", "timeout 10s bash -c ':> /dev/tcp/127.0.0.1/9600' || exit 1"]
@@ -53,75 +51,76 @@ services:
       - "./.orchestration/application.yaml:/usr/local/camunda/config/application.yaml"
     networks:
       - camunda-platform
+      - stankoff
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
       elasticsearch:
         condition: service_healthy
 
-  connectors: # https://docs.camunda.io/docs/self-managed/connectors-deployment/connectors-configuration/
-    image: camunda/connectors-bundle:${CAMUNDA_CONNECTORS_VERSION}
-    container_name: connectors
-    ports:
-      - "8086:8080"
-    environment:
-      # Orchestration connection - service addresses and credentials
-      CAMUNDA_CLIENT_RESTADDRESS: http://orchestration:8080
-      CAMUNDA_CLIENT_GRPCADDRESS: http://orchestration:26500
-      CAMUNDA_CLIENT_AUTH_ISSUERURL: http://${KEYCLOAK_HOST}:18080/auth/realms/camunda-platform
-      CAMUNDA_CLIENT_AUTH_CLIENTID: ${CONNECTORS_CLIENT_ID}
-      CAMUNDA_CLIENT_AUTH_CLIENTSECRET: ${CONNECTORS_CLIENT_SECRET}
-    env_file: connector-secrets.txt
-    restart: on-failure
-    volumes:
-      - "./.connectors/application.yaml:/app/application.yaml"
-    networks:
-      - camunda-platform
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      orchestration:
-        condition: service_healthy
+  # connectors: # https://docs.camunda.io/docs/self-managed/connectors-deployment/connectors-configuration/
+  #   image: camunda/connectors-bundle:${CAMUNDA_CONNECTORS_VERSION}
+  #   container_name: connectors
+  #   ports:
+  #     - "8086:8080"
+  #   environment:
+  #     # Orchestration connection - service addresses and credentials
+  #     CAMUNDA_CLIENT_RESTADDRESS: http://orchestration:8080
+  #     CAMUNDA_CLIENT_GRPCADDRESS: http://orchestration:26500
+  #     CAMUNDA_CLIENT_AUTH_ISSUERURL: http://${KEYCLOAK_HOST}:18080/auth/realms/camunda-platform
+  #     CAMUNDA_CLIENT_AUTH_CLIENTID: ${CONNECTORS_CLIENT_ID}
+  #     CAMUNDA_CLIENT_AUTH_CLIENTSECRET: ${CONNECTORS_CLIENT_SECRET}
+  #   env_file: connector-secrets.txt
+  #   restart: on-failure
+  #   volumes:
+  #     - "./.connectors/application.yaml:/app/application.yaml"
+  #   networks:
+  #     - camunda-platform
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   depends_on:
+  #     orchestration:
+  #       condition: service_healthy
 
-  optimize: # https://docs.camunda.io/docs/self-managed/setup/deploy/other/docker/#optimize
-    image: camunda/optimize:${CAMUNDA_OPTIMIZE_VERSION}
-    container_name: optimize
-    ports:
-      - "8083:8090"
-    environment: # https://docs.camunda.io/docs/self-managed/optimize-deployment/install-and-start/
-      # Elasticsearch connection
-      OPTIMIZE_ELASTICSEARCH_HOST: elasticsearch
-      OPTIMIZE_ELASTICSEARCH_HTTP_PORT: "9200"
-      SPRING_PROFILES_ACTIVE: ccsm
-      # Identity integration - URLs and credentials
-      CAMUNDA_OPTIMIZE_IDENTITY_ISSUER_URL: http://${HOST}:18080/auth/realms/camunda-platform
-      CAMUNDA_OPTIMIZE_IDENTITY_ISSUER_BACKEND_URL: http://${KEYCLOAK_HOST}:18080/auth/realms/camunda-platform
-      CAMUNDA_OPTIMIZE_IDENTITY_CLIENTID: optimize
-      CAMUNDA_OPTIMIZE_IDENTITY_CLIENTSECRET: ${OPTIMIZE_CLIENT_SECRET}
-      CAMUNDA_OPTIMIZE_IDENTITY_AUDIENCE: optimize-api
-      CAMUNDA_OPTIMIZE_IDENTITY_BASE_URL: http://identity:8084
-      # Management endpoints
-      management.endpoints.web.exposure.include: health,configprops
-      MANAGEMENT_ENDPOINT_CONFIGPROPS_SHOW_VALUES: ALWAYS
-      management.endpoint.health.probes.enabled: "true"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8090/api/readyz"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    volumes:
-      - "./.optimize/environment-config.yaml:/optimize/config/environment-config.yaml"
-    restart: on-failure
-    networks:
-      - camunda-platform
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      identity:
-        condition: service_healthy
-      elasticsearch:
-        condition: service_healthy
+  # optimize: # https://docs.camunda.io/docs/self-managed/setup/deploy/other/docker/#optimize
+  #   image: camunda/optimize:${CAMUNDA_OPTIMIZE_VERSION}
+  #   container_name: optimize
+  #   ports:
+  #     - "8083:8090"
+  #   environment: # https://docs.camunda.io/docs/self-managed/optimize-deployment/install-and-start/
+  #     # Elasticsearch connection
+  #     OPTIMIZE_ELASTICSEARCH_HOST: elasticsearch
+  #     OPTIMIZE_ELASTICSEARCH_HTTP_PORT: "9200"
+  #     SPRING_PROFILES_ACTIVE: ccsm
+  #     # Identity integration - URLs and credentials
+  #     CAMUNDA_OPTIMIZE_IDENTITY_ISSUER_URL: http://${HOST}:18080/auth/realms/camunda-platform
+  #     CAMUNDA_OPTIMIZE_IDENTITY_ISSUER_BACKEND_URL: http://${KEYCLOAK_HOST}:18080/auth/realms/camunda-platform
+  #     CAMUNDA_OPTIMIZE_IDENTITY_CLIENTID: optimize
+  #     CAMUNDA_OPTIMIZE_IDENTITY_CLIENTSECRET: ${OPTIMIZE_CLIENT_SECRET}
+  #     CAMUNDA_OPTIMIZE_IDENTITY_AUDIENCE: optimize-api
+  #     CAMUNDA_OPTIMIZE_IDENTITY_BASE_URL: http://identity:8084
+  #     # Management endpoints
+  #     management.endpoints.web.exposure.include: health,configprops
+  #     MANAGEMENT_ENDPOINT_CONFIGPROPS_SHOW_VALUES: ALWAYS
+  #     management.endpoint.health.probes.enabled: "true"
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:8090/api/readyz"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 30s
+  #   volumes:
+  #     - "./.optimize/environment-config.yaml:/optimize/config/environment-config.yaml"
+  #   restart: on-failure
+  #   networks:
+  #     - camunda-platform
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   depends_on:
+  #     identity:
+  #       condition: service_healthy
+  #     elasticsearch:
+  #       condition: service_healthy
 
   identity: # https://docs.camunda.io/docs/self-managed/setup/deploy/other/docker/#identity
     container_name: identity
@@ -144,7 +143,7 @@ services:
       KEYCLOAK_HOST: ${KEYCLOAK_HOST}
       RESOURCE_PERMISSIONS_ENABLED: ${RESOURCE_AUTHORIZATIONS_ENABLED}
       management.endpoints.web.exposure.include: health,configprops
-      management.endpoint.health.probes.enabled: true
+      management.endpoint.health.probes.enabled: "true"
       MANAGEMENT_ENDPOINT_CONFIGPROPS_SHOW_VALUES: ALWAYS
     healthcheck:
       test: ["CMD", "wget", "-q", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
@@ -335,7 +334,7 @@ services:
       CAMUNDA_MODELER_CLUSTERS_0_AUTHENTICATION: BEARER_TOKEN
       CAMUNDA_MODELER_CLUSTERS_0_AUTHORIZATIONS_ENABLED: ${RESOURCE_AUTHORIZATIONS_ENABLED}
       management.endpoints.web.exposure.include: health,configprops
-      management.endpoint.health.probes.enabled: true
+      management.endpoint.health.probes.enabled: "true"
       MANAGEMENT_ENDPOINT_CONFIGPROPS_SHOW_VALUES: ALWAYS
     networks:
       - web-modeler
@@ -455,3 +454,5 @@ networks:
   camunda-platform:
   identity-network:
   web-modeler:
+  stankoff:
+    external: true
